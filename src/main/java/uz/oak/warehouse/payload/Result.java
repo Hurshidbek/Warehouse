@@ -11,7 +11,7 @@ import java.util.List;
 @Data
 public class Result {
 
-    private List<ProductResponseDto> list;
+    private List<ProductResponseDto> result;
 
 
 }

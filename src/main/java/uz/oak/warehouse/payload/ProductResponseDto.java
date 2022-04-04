@@ -11,9 +11,9 @@ import java.util.List;
 @Setter
 public class ProductResponseDto {
 
-    private String productName;
+    private String product_name;
     private double productQty;
-    private List<TempHouse> productMaterials;
+    private List<TempHouse> product_materials;
 
 
 

@@ -19,7 +19,7 @@ public class WarehouseController {
     @PostMapping("/get")
     public ResponseEntity<?> getProduct(
             @RequestBody List<ProductRequestDto> requestDtos
-    ){
+    ) throws Exception {
         return ResponseEntity.status(200).body(service.getAllProductsInfo(requestDtos));
     }
 

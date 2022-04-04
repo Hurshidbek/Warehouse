@@ -2,6 +2,7 @@ package uz.oak.warehouse.service;
 
 import uz.oak.warehouse.entity.TempHouse;
 import uz.oak.warehouse.entity.Warehouse;
+import uz.oak.warehouse.exception.NotFoundException;
 import uz.oak.warehouse.payload.ProductMaterialDto;
 import uz.oak.warehouse.payload.ProductRequestDto;
 import uz.oak.warehouse.payload.ProductResponseDto;
@@ -14,24 +15,18 @@ import uz.oak.warehouse.repository.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @org.springframework.stereotype.Service
 @RequiredArgsConstructor
 public class WarehouseService {
 
     private final ProductRepository productRepository;
-    private final MaterialRepository materialRepository;
     private final ProductMaterialRepository productMaterialRepository;
     private final WarehouseRepository warehouseRepository;
     private final TempHouseRepository tempHouseRepository;
 
 
-    /**
-     * getAllInfo
-     */
-    @SneakyThrows
-    public Result getAllProductsInfo(List<ProductRequestDto> requestDtoList) {
+    public Result getAllProductsInfo(List<ProductRequestDto> requestDtoList) throws Exception {
 
         tempHouseRepository.deleteAll();
         saveAllFromWareHouseToTempHouse();
@@ -40,7 +35,7 @@ public class WarehouseService {
 
         for (ProductRequestDto requestDto : requestDtoList) {
             if (getProductByName(requestDto.getName()) == null) {
-                throw new Exception(requestDto.getName() + " product not found");
+                throw new NotFoundException(requestDto.getName() + " product not found", Product.class, "name");
             }
             productResponseDto.add(getAllProductMaterials(requestDto));
         }
@@ -48,13 +43,42 @@ public class WarehouseService {
         return new Result(productResponseDto);
     }
 
-    /**
-     * getAllMaterialsProduct
-     */
-    private ProductResponseDto getAllProductMaterials(ProductRequestDto requestDto) {
+
+    private void saveAllFromWareHouseToTempHouse() {
+        tempHouseRepository.saveAll(getAllFromWareHouse());
+    }
+
+
+    private List<TempHouse> getAllFromWareHouse() {
+        List<TempHouse> tempHouseList = new ArrayList<>();
+
+        List<Warehouse> warehouseList = warehouseRepository.findAll();
+
+        for (Warehouse warehouse : warehouseList) {
+            TempHouse tempHouse = new TempHouse();
+            tempHouse.setWarehouseId(warehouse.getId());
+
+            tempHouse.setMaterialName(warehouse.getMaterial().getName());
+
+            tempHouse.setQty(warehouse.getRemainder());
+            tempHouse.setPrice(warehouse.getPrice());
+
+            tempHouseList.add(tempHouse);
+        }
+        return tempHouseList;
+    }
+
+
+    private Product getProductByName(String name) throws Exception {
+        return productRepository.findByName(name)
+                .orElseThrow(()-> new NotFoundException("There is no product regards to given name", Product.class, "name"));
+    }
+
+
+    private ProductResponseDto getAllProductMaterials(ProductRequestDto requestDto) throws Exception {
         ProductResponseDto productResponseDto = new ProductResponseDto();
 
-        productResponseDto.setProductName(requestDto.getName());
+        productResponseDto.setProduct_name(requestDto.getName());
         productResponseDto.setProductQty(requestDto.getQuantity());
 
         List<TempHouse> productsInTempHouse = new ArrayList<>();
@@ -63,13 +87,13 @@ public class WarehouseService {
             productsInTempHouse.addAll(getMaterials(productMaterialDto));
         }
 
-        productResponseDto.setProductMaterials(productsInTempHouse);
+        productResponseDto.setProduct_materials(productsInTempHouse);
 
         return productResponseDto;
     }
 
-    @SneakyThrows
-    private List<ProductMaterialDto> getProductMaterials(ProductRequestDto requestDto) {
+
+    private List<ProductMaterialDto> getProductMaterials(ProductRequestDto requestDto) throws Exception {
 
         Product product = getProductByName(requestDto.getName());
 
@@ -127,49 +151,9 @@ public class WarehouseService {
         return tempHouses;
     }
 
+
     public List<TempHouse> getAllByMaterialsName(String materialName) {
         return tempHouseRepository.findAllByMaterialName(materialName);
-    }
-
-
-// Koradigan joyi bor
-
-    /**
-     * getProductByName
-     */
-    private Product getProductByName(String name) throws Exception {
-        Optional<Product> product = productRepository.findByName(name);
-        if (product.isPresent())
-            return product.get();
-        throw new Exception(name + " product not found");
-    }
-
-    /**
-     * saveAll
-     */
-    private void saveAllFromWareHouseToTempHouse() {
-        tempHouseRepository.saveAll(getAllFromWareHouse());
-    }
-
-    /**
-     * getWarehouseList
-     */
-    private List<TempHouse> getAllFromWareHouse() {
-        List<TempHouse> tempHouseList = new ArrayList<>();
-
-        List<Warehouse> warehouseList = warehouseRepository.findAll();
-
-        for (Warehouse warehouse : warehouseList) {
-            TempHouse tempHouse = new TempHouse();
-            tempHouse.setWarehouseId(warehouse.getId());
-
-            tempHouse.setMaterialName(warehouse.getMaterial().getName());
-
-            tempHouse.setQty(warehouse.getRemainder());
-            tempHouse.setPrice(warehouse.getPrice());
-            tempHouseList.add(tempHouse);
-        }
-        return tempHouseList;
     }
 
 

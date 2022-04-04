@@ -18,10 +18,8 @@ public class Warehouse extends BaseEntity{
     @ManyToOne
     private Material material;
 
-    @Column(nullable = false)
     private double remainder;
 
-    @Column(nullable = false)
     private double price;
 
 
